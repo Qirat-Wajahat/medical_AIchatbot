@@ -7,8 +7,6 @@ import json
 import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
 import joblib
 import os
 
@@ -75,8 +73,8 @@ class DiseasePredictionModel:
             # Add variations with different symptom combinations
             if len(symptoms) > 2:
                 for i in range(len(symptoms)):
-                    # Create partial symptom combinations
-                    partial_symptoms = symptoms[:i+1] + symptoms[i+2:]
+                    # Create partial symptom combinations by removing one symptom
+                    partial_symptoms = symptoms[:i] + symptoms[i+1:]
                     if len(partial_symptoms) >= 2:
                         symptom_text = ' '.join(partial_symptoms)
                         X.append(symptom_text)
