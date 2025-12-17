@@ -1,0 +1,280 @@
+{
+  "diseases": [
+    {
+      "name": "Common Cold",
+      "symptoms": [
+        "runny nose",
+        "sneezing",
+        "cough",
+        "sore throat",
+        "congestion",
+        "mild fever"
+      ],
+      "medicines": [
+        {
+          "name": "Acetaminophen (Tylenol)",
+          "dosage": "500mg every 4-6 hours",
+          "purpose": "Reduces fever and relieves pain"
+        },
+        {
+          "name": "Dextromethorphan",
+          "dosage": "10-20mg every 4 hours",
+          "purpose": "Cough suppressant"
+        },
+        {
+          "name": "Pseudoephedrine",
+          "dosage": "30-60mg every 4-6 hours",
+          "purpose": "Nasal decongestant"
+        }
+      ]
+    },
+    {
+      "name": "Influenza (Flu)",
+      "symptoms": [
+        "high fever",
+        "body aches",
+        "fatigue",
+        "headache",
+        "cough",
+        "sore throat",
+        "chills"
+      ],
+      "medicines": [
+        {
+          "name": "Oseltamivir (Tamiflu)",
+          "dosage": "75mg twice daily for 5 days",
+          "purpose": "Antiviral medication"
+        },
+        {
+          "name": "Ibuprofen",
+          "dosage": "400-600mg every 6-8 hours",
+          "purpose": "Reduces fever and body aches"
+        },
+        {
+          "name": "Rest and hydration",
+          "dosage": "As needed",
+          "purpose": "Supportive care"
+        }
+      ]
+    },
+    {
+      "name": "Migraine",
+      "symptoms": [
+        "severe headache",
+        "nausea",
+        "sensitivity to light",
+        "sensitivity to sound",
+        "visual disturbances"
+      ],
+      "medicines": [
+        {
+          "name": "Sumatriptan",
+          "dosage": "50-100mg at onset",
+          "purpose": "Migraine-specific medication"
+        },
+        {
+          "name": "Ibuprofen",
+          "dosage": "400-800mg as needed",
+          "purpose": "Pain relief and anti-inflammatory"
+        },
+        {
+          "name": "Metoclopramide",
+          "dosage": "10mg as needed",
+          "purpose": "Anti-nausea"
+        }
+      ]
+    },
+    {
+      "name": "Gastroenteritis",
+      "symptoms": [
+        "diarrhea",
+        "vomiting",
+        "stomach cramps",
+        "nausea",
+        "fever",
+        "dehydration"
+      ],
+      "medicines": [
+        {
+          "name": "Oral Rehydration Solution (ORS)",
+          "dosage": "As needed for hydration",
+          "purpose": "Prevents dehydration"
+        },
+        {
+          "name": "Loperamide (Imodium)",
+          "dosage": "2mg after each loose stool",
+          "purpose": "Reduces diarrhea"
+        },
+        {
+          "name": "Ondansetron",
+          "dosage": "4-8mg as needed",
+          "purpose": "Anti-nausea and vomiting"
+        }
+      ]
+    },
+    {
+      "name": "Allergic Rhinitis",
+      "symptoms": [
+        "sneezing",
+        "itchy nose",
+        "runny nose",
+        "watery eyes",
+        "nasal congestion"
+      ],
+      "medicines": [
+        {
+          "name": "Cetirizine (Zyrtec)",
+          "dosage": "10mg once daily",
+          "purpose": "Antihistamine for allergy relief"
+        },
+        {
+          "name": "Fluticasone nasal spray",
+          "dosage": "1-2 sprays per nostril daily",
+          "purpose": "Reduces nasal inflammation"
+        },
+        {
+          "name": "Loratadine (Claritin)",
+          "dosage": "10mg once daily",
+          "purpose": "Non-drowsy antihistamine"
+        }
+      ]
+    },
+    {
+      "name": "Bronchitis",
+      "symptoms": [
+        "persistent cough",
+        "mucus production",
+        "chest discomfort",
+        "fatigue",
+        "shortness of breath",
+        "mild fever"
+      ],
+      "medicines": [
+        {
+          "name": "Guaifenesin",
+          "dosage": "200-400mg every 4 hours",
+          "purpose": "Expectorant to loosen mucus"
+        },
+        {
+          "name": "Albuterol inhaler",
+          "dosage": "2 puffs every 4-6 hours",
+          "purpose": "Bronchodilator for breathing"
+        },
+        {
+          "name": "Acetaminophen",
+          "dosage": "500mg every 4-6 hours",
+          "purpose": "Fever and pain relief"
+        }
+      ]
+    },
+    {
+      "name": "Urinary Tract Infection",
+      "symptoms": [
+        "burning urination",
+        "frequent urination",
+        "cloudy urine",
+        "lower abdominal pain",
+        "urgent need to urinate"
+      ],
+      "medicines": [
+        {
+          "name": "Nitrofurantoin",
+          "dosage": "100mg twice daily for 5 days",
+          "purpose": "Antibiotic for UTI"
+        },
+        {
+          "name": "Phenazopyridine",
+          "dosage": "200mg three times daily",
+          "purpose": "Urinary pain relief"
+        },
+        {
+          "name": "Increased water intake",
+          "dosage": "8-10 glasses daily",
+          "purpose": "Flushes bacteria from urinary tract"
+        }
+      ]
+    },
+    {
+      "name": "Hypertension",
+      "symptoms": [
+        "headache",
+        "dizziness",
+        "blurred vision",
+        "chest pain",
+        "shortness of breath"
+      ],
+      "medicines": [
+        {
+          "name": "Lisinopril",
+          "dosage": "10-40mg once daily",
+          "purpose": "ACE inhibitor to lower blood pressure"
+        },
+        {
+          "name": "Amlodipine",
+          "dosage": "5-10mg once daily",
+          "purpose": "Calcium channel blocker"
+        },
+        {
+          "name": "Hydrochlorothiazide",
+          "dosage": "12.5-25mg once daily",
+          "purpose": "Diuretic to reduce fluid retention"
+        }
+      ]
+    },
+    {
+      "name": "Type 2 Diabetes",
+      "symptoms": [
+        "increased thirst",
+        "frequent urination",
+        "fatigue",
+        "blurred vision",
+        "slow healing wounds"
+      ],
+      "medicines": [
+        {
+          "name": "Metformin",
+          "dosage": "500-1000mg twice daily",
+          "purpose": "Reduces glucose production"
+        },
+        {
+          "name": "Glipizide",
+          "dosage": "5-10mg once daily",
+          "purpose": "Stimulates insulin production"
+        },
+        {
+          "name": "Sitagliptin",
+          "dosage": "100mg once daily",
+          "purpose": "DPP-4 inhibitor for glucose control"
+        }
+      ]
+    },
+    {
+      "name": "Anxiety Disorder",
+      "symptoms": [
+        "excessive worry",
+        "restlessness",
+        "rapid heartbeat",
+        "difficulty concentrating",
+        "insomnia",
+        "muscle tension"
+      ],
+      "medicines": [
+        {
+          "name": "Sertraline (Zoloft)",
+          "dosage": "50-200mg once daily",
+          "purpose": "SSRI antidepressant"
+        },
+        {
+          "name": "Buspirone",
+          "dosage": "15-30mg daily in divided doses",
+          "purpose": "Anti-anxiety medication"
+        },
+        {
+          "name": "Propranolol",
+          "dosage": "10-40mg as needed",
+          "purpose": "Beta-blocker for physical symptoms"
+        }
+      ]
+    }
+  ]
+}

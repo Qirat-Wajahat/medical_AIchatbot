@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Anna Balla Chat_Bot{% endblock %}
+
+{% block body %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="main-card">
+                <div id="chat-board" class="chat-board">
+                    {% if chat_history %}
+                        {% for m in chat_history %}
+                            {% if m.role == 'user' %}
+                                <div class="chat-row chat-row-user">
+                                    <div class="chat-bubble chat-bubble-user">{{ m.text }}</div>
+                                </div>
+                            {% elif m.role == 'bot' %}
+                                <div class="chat-row chat-row-bot">
+                                    <div class="chat-bubble chat-bubble-bot">
+                                        <div class="chat-name">Anna Balla</div>
+                                        <div class="chat-text">{{ m.text|safe }}</div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-muted" style="padding: 0.75rem 0.25rem;">
+                            Send a message below to start.
+                        </div>
+                    {% endif %}
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+{% extends 'index.html' %}
+{% url 'home' %}
+{% load static %}
+
+{% block title %}Home{% endblock title %}
+
+{% block body %}
+
+    <!-- Centered Image -->
+    <div class="d-flex justify-content-center align-items-center" style="min-height: 50vh;">
+        <div class="image-container" style="max-width: 118px; max-height: 114px;">
+            <img src="{% static 'img/logo.png' %}" alt="Logo" width="118" height="114">
+        </div>
+    </div>
+
+    <!-- Centered Buttons -->
+    <div class="d-flex flex-wrap justify-content-center text-center" style="z-index: 100;">
+        <form method="GET" action="{% url 'chat' %}" class="mx-2">
+            <input type="hidden" name="query" value="Discover New Pet Care Tips">
+            <button type="submit" class="btn btn-outline-secondary custom-btn"
+                    style="flex: 1 0 150px; width: 100%; max-width: 200px;">
+                <span class="line-clamp-3 text-balance break-word">
+                    Discover New Pet Care Tips
+                </span>
+            </button>
+        </form>
+        <form method="GET" action="{% url 'chat' %}" class="mx-2">
+            <input type="hidden" name="query" value="Generate a Custom Pet Name">
+            <button type="submit" class="btn btn-outline-secondary custom-btn"
+                    style="flex: 1 0 150px; width: 100%; max-width: 200px;">
+                <span class="line-clamp-3 text-balance break-word">
+                    Generate a Pet Name
+                </span>
+            </button>
+        </form>
+        <form method="GET" action="{% url 'chat' %}" class="mx-2">
+            <input type="hidden" name="query" value="Find the Perfect Pet Toy">
+            <button type="submit" class="btn btn-outline-secondary custom-btn"
+                    style="flex: 1 0 150px; width: 100%; max-width: 200px;">
+                <span class="line-clamp-3 text-balance break-word">
+                    Find the Perfect Pet Toy
+                </span>
+            </button>
+        </form>
+        <form method="GET" action="{% url 'chat' %}" class="mx-2">
+            <input type="hidden" name="query" value="Learn About Pet Nutrition">
+            <button type="submit" class="btn btn-outline-secondary custom-btn"
+                    style="flex: 1 0 150px; width: 100%; max-width: 200px;">
+                <span class="line-clamp-3 text-balance break-word">
+                    Learn About Pet Nutrition
+                </span>
+            </button>
+        </form>
+    </div>
+
+{% endblock body %}

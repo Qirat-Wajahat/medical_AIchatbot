@@ -1,2 +1,203 @@
-# medical_AIchatbot
+# 🏥 Medical AI Chatbot
+
 An end-to-end AI-powered medical chatbot that analyzes patient symptoms using NLP and machine learning to predict possible diseases, recommend relevant medicines from real-world data, and provide educational medical information.
+
+## ⚠️ Medical Disclaimer
+
+**IMPORTANT: This chatbot is for educational and informational purposes only.**
+
+- This tool does NOT replace professional medical advice, diagnosis, or treatment.
+- Always consult a qualified healthcare provider for medical concerns.
+- In case of emergency, call your local emergency number immediately.
+- The predictions are based on limited data and may not be accurate.
+- Do not self-medicate based on this information.
+
+## 🌟 Features
+
+- **Symptom Analysis**: Uses Natural Language Processing (NLP) to extract and process patient symptoms
+- **Disease Prediction**: Machine Learning models predict possible diseases based on symptoms
+- **Medicine Recommendations**: Suggests relevant medicines from a comprehensive JSON database
+- **Medical Reference**: Displays educational medical information from reference texts
+- **User-Friendly Interface**: Built with Streamlit for an intuitive user experience
+- **Educational Disclaimer**: Includes prominent warnings about proper medical consultation
+
+## 📁 Project Structure
+
+```
+medical_AIchatbot/
+├── app.py                          # Original Streamlit application (kept for reference)
+├── app_flask.py                    # New Flask web application (recommended)
+├── requirements.txt                # Python dependencies
+├── README.md                       # Project documentation
+├── templates/                      # Flask HTML templates
+│   ├── base.html
+│   └── index.html
+├── data/
+│   ├── medicines.json              # Disease and medicine database
+│   ├── medicine_items_updated.json # Optional larger dataset
+│   └── medical_reference.txt       # Medical reference information
+├── models/
+│   ├── __init__.py
+│   └── disease_predictor.py        # ML model for disease prediction
+└── utils/
+   ├── __init__.py
+   ├── preprocessing.py            # NLP preprocessing utilities
+   └── medical_reference.py        # Reference text handler
+```
+
+## 🚀 Installation
+
+### Prerequisites
+
+- Python 3.8 or higher
+- pip package manager
+
+### Setup Instructions
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/Qirat-Wajahat/medical_AIchatbot.git
+   cd medical_AIchatbot
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Download NLTK data** (will be done automatically on first run):
+   The application will automatically download required NLTK datasets (punkt, stopwords, wordnet).
+
+## 💻 Usage
+
+### Running the Application
+
+You can run the original Streamlit app or the new Flask app. The Flask app provides a simple, responsive UI using standard templates and may be easier to customize.
+
+1. **Install dependencies** (if you haven't already):
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
+
+2. **(Recommended) Start the Flask app**:
+```powershell
+python app_flask.py
+```
+
+- Access: http://localhost:5000
+
+3. **(Optional) Start the Streamlit app** (kept for reference):
+```powershell
+streamlit run app.py
+```
+
+4. **Use the chatbot**:
+- Enter your symptoms in the input box and submit.
+- Review predicted diseases, associated symptoms, medicines, and reference text.
+- **Always consult a healthcare professional** for diagnosis and treatment.
+
+### Example Inputs
+
+- "I have a runny nose, sneezing, and sore throat"
+- "fever, body aches, fatigue, and headache"
+- "severe headache with sensitivity to light and nausea"
+- "diarrhea, vomiting, and stomach cramps"
+
+## 🧠 How It Works
+
+### 1. NLP Preprocessing
+- Cleans and normalizes user input
+- Tokenizes text into words
+- Removes stopwords while preserving medical terms
+- Lemmatizes tokens to base forms
+
+### 2. Disease Prediction
+- **ML Model**: Uses Multinomial Naive Bayes with TF-IDF features
+- **Rule-Based Matching**: Matches symptoms with disease database
+- **Hybrid Approach**: Combines both methods for better accuracy
+
+### 3. Medicine Recommendation
+- Retrieves medicines from JSON database
+- Shows dosage and purpose for each medicine
+- Provides comprehensive treatment information
+
+### 4. Medical Reference
+- Displays educational information about diseases
+- Includes descriptions, duration, prevention, and when to see a doctor
+
+## 📊 Supported Diseases
+
+The system currently supports prediction for:
+- Common Cold
+- Influenza (Flu)
+- Migraine
+- Gastroenteritis
+- Allergic Rhinitis
+- Bronchitis
+- Urinary Tract Infection
+- Hypertension
+- Type 2 Diabetes
+- Anxiety Disorder
+
+## 🛠️ Technology Stack
+
+- **Frontend**: Streamlit
+- **NLP**: NLTK (Natural Language Toolkit)
+- **Machine Learning**: scikit-learn
+- **Data Processing**: pandas, numpy
+- **Model Persistence**: joblib
+
+## 📦 Dependencies
+
+Dependencies are managed in `requirements.txt`. Key packages used by the project include:
+
+```
+streamlit>=1.28.0
+pandas>=1.5.0
+numpy>=1.23.0
+scikit-learn>=1.2.0
+nltk>=3.8
+joblib>=1.2.0
+flask>=2.0
+```
+
+## 🔮 Future Enhancements
+
+- [ ] Expand disease database with more conditions
+- [ ] Add multi-language support
+- [ ] Implement deep learning models for better accuracy
+- [ ] Add user authentication and history tracking
+- [ ] Integrate with medical APIs for real-time data
+- [ ] Add symptom severity assessment
+- [ ] Implement chatbot conversation interface
+- [ ] Add visualization of disease probability distributions
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is for educational purposes only. Please ensure proper medical consultation before making any health-related decisions.
+
+## 👤 Author
+
+Qirat Wajahat
+
+## 🙏 Acknowledgments
+
+- Medical data compiled from publicly available health resources
+- Built with open-source tools and libraries
+- Inspired by the need for accessible health information
+
+---
+
+**Remember: This is an educational tool. Always consult qualified healthcare professionals for medical advice, diagnosis, and treatment.**
