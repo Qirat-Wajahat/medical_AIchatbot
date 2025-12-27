@@ -13,9 +13,13 @@
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
 
+    <!-- Favicon -->
+    <link rel="icon" type="image/png"JcXn/tWtIaxVXM href="{{ url_for('static', filename='logo.png') }}">
+
+
     <title>{% block title %}Anna Balla Chat_Bot{% endblock %}</title>
 
-    <style>
+<style>
         :root {
             --bg: #212121;
             --panel: #2f2f2f;
@@ -170,6 +174,12 @@
             text-decoration: underline;
         }
 
+        .brand-logo {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+        }
+
         /* Mobile polish */
         @media (max-width: 576px) {
             .content {
@@ -190,8 +200,13 @@
             .programmer-text {
                 font-size: 0.85rem;
             }
+
+            .brand-logo {
+                width: 92px;
+                height: 92px;
+            }
         }
-    </style>
+</style>
 
 </head>
 <body>
@@ -200,7 +215,7 @@
 <nav id="top-navbar" class="navbar navbar-dark fixed-top" style="background: var(--bg)">
     <div class="container-fluid mx-2 my-auto">
         <a class="navbar-brand" style="color: rgb(155 155 155)" href="/">
-            <img class="mx-2" src="{{ url_for('static', filename='logo.png') }}" alt="" width="96" height="96" onerror="this.style.display='none'">
+            <img class="mx-2 brand-logo" src="{{ url_for('static', filename='logo.png') }}" alt="" onerror="this.style.display='none'">
             Anna Balla
         </a>
         <a class="btn btn-outline-secondary" style="border-radius: 50%" href="/?reset=1">
