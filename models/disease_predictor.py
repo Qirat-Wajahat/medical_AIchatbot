@@ -1,39 +1,134 @@
-"""
-Disease Prediction Model for Medical Chatbot
-Uses machine learning to predict diseases based on symptoms
+"""Scenario follow-up retrieval helper.
+
+This project intentionally separates:
+- `data/scenarios.txt`: communication style only (follow-up questions)
+- `data/medicines.json`: medical knowledge base (handled in app_flask.py)
+
+`DiseasePredictionModel` remains for backward compatibility, but it no longer
+trains or persists any ML model.
 """
 
 import json
-import numpy as np
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.naive_bayes import MultinomialNB
-import joblib
-import os
+import re
 
 
 class DiseasePredictionModel:
-    """Machine learning model for disease prediction"""
+    """Scenario follow-up retriever (style-only).
 
-    def __init__(self, data_paths=None):
+    Note: disease prediction is handled via `data/medicines.json` in `app_flask.py`.
+    """
+
+    def __init__(
+        self,
+        data_paths=None,
+        data_path=None,
+        scenario_path=None,
+        scenario_paths=None,
+        scenario_label_aliases=None,
+        use_scenarios_for_training: bool = False,
+    ):
         """
         Initialize the disease prediction model
 
         Args:
             data_paths (str or list): Path or list of paths to medicines/diseases JSON files
+            data_path (str): Backwards-compatible alias for a single path
+            scenario_path (str): Backwards-compatible alias for a single scenarios text path
+            scenario_paths (str or list): Path(s) to scenarios text files to use as extra training samples
+            scenario_label_aliases (dict): Optional mapping from scenario labels -> canonical disease names
         """
+        if data_paths is None and data_path is not None:
+            data_paths = data_path
         if data_paths is None:
             data_paths = ['data/medicines.json']
         if isinstance(data_paths, str):
             data_paths = [data_paths]
 
+        if scenario_paths is None and scenario_path is not None:
+            scenario_paths = scenario_path
+        if isinstance(scenario_paths, str):
+            scenario_paths = [scenario_paths]
+
         self.data_paths = data_paths
+        self.scenario_paths = scenario_paths or []
+        # Kept for backwards compatibility, but intentionally ignored.
+        self.use_scenarios_for_training = bool(use_scenarios_for_training)
+        self._scenario_label_aliases = scenario_label_aliases or {}
+
+        # Optional legacy fields (not used by the Flask app flow).
         self.diseases = []
         self.symptoms_map = {}
-        self.vectorizer = TfidfVectorizer(max_features=100)
-        self.model = MultinomialNB()
-        self.is_trained = False
-        # Load disease data from one or more JSON files
+
+        # Scenario dialog samples used for style follow-ups.
+        # Each entry: {"patient_text": str, "tokens": set[str], "doctor_lines": list[str]}
+        self._scenario_dialog_samples = []
+
+        # Load legacy disease data (best-effort). This project uses medicines.json differently,
+        # so this usually results in an empty dataset and that's OK.
         self.load_data()
+
+        # Load dialog samples from scenarios (style-only).
+        for sp in self.scenario_paths:
+            self._scenario_dialog_samples.extend(self._load_scenarios(sp))
+
+    @staticmethod
+    def normalize_text(text: str) -> str:
+        """Lightweight normalization shared by training and inference.
+
+        Keeps spaces, removes punctuation/numbers, lowercases.
+        """
+        t = (text or "").lower()
+        t = re.sub(r"http\S+|www\S+", " ", t)
+        t = re.sub(r"[^a-z\s]", " ", t)
+        t = " ".join(t.split())
+        return t
+
+    def _load_scenarios(self, scenario_path: str):
+        """Parse a scenarios.txt file and return dialog snippets.
+
+        We only use scenarios as a communication-style source of follow-up questions.
+        """
+        dialog_samples = []
+        if not scenario_path:
+            return dialog_samples
+
+        try:
+            with open(scenario_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+        except FileNotFoundError:
+            return dialog_samples
+
+        blocks = re.split(r"\n\s*Scenario\s+\d+\s*\n", "\n" + content.strip(), flags=re.IGNORECASE)
+
+        for block in blocks:
+            block = block.strip()
+            if not block:
+                continue
+
+            patient_lines = []
+            doctor_lines = []
+            for line in block.splitlines():
+                line = line.strip()
+                if line.lower().startswith('patient:'):
+                    patient_lines.append(line.split(':', 1)[1].strip())
+                elif line.lower().startswith('doctor:'):
+                    doctor_lines.append(line.split(':', 1)[1].strip())
+
+            patient_text = self.normalize_text(' '.join(patient_lines))
+            if not patient_text or not doctor_lines:
+                continue
+
+            tokens = set(patient_text.split())
+            if not tokens:
+                continue
+
+            dialog_samples.append({
+                'patient_text': patient_text,
+                'tokens': tokens,
+                'doctor_lines': doctor_lines,
+            })
+
+        return dialog_samples
     
     def load_data(self):
         """Load disease and symptom data from one or more JSON files and merge duplicates."""
@@ -46,9 +141,17 @@ class DiseasePredictionModel:
                     items = data.get('diseases', []) if isinstance(data, dict) else data
 
                     for disease in items:
+                        if not isinstance(disease, dict):
+                            continue
+
                         # Normalize name
                         name = disease.get('name', '').strip()
                         if not name:
+                            continue
+
+                        # Guard: only accept objects that actually look like a disease entry.
+                        symptoms = disease.get('symptoms')
+                        if not isinstance(symptoms, list) or len(symptoms) == 0:
                             continue
 
                         if name in merged:
@@ -71,7 +174,7 @@ class DiseasePredictionModel:
                             # Add a shallow copy to avoid modifying source
                             merged[name] = {
                                 'name': name,
-                                'symptoms': list(disease.get('symptoms', [])),
+                                'symptoms': list(symptoms),
                                 'medicines': list(disease.get('medicines', []))
                             }
             except FileNotFoundError:
@@ -90,170 +193,42 @@ class DiseasePredictionModel:
                 if symptom not in self.symptoms_map:
                     self.symptoms_map[symptom] = []
                 self.symptoms_map[symptom].append(disease_name)
-    
-    def prepare_training_data(self):
+
+    def get_scenario_followups(self, text: str, top_k: int = 2):
+        """Return doctor follow-up lines from the most similar scenarios.
+
+        Similarity is computed via token overlap against the scenario's patient text.
         """
-        Prepare training data from disease information
-        
-        Returns:
-            tuple: (X_train, y_train) feature vectors and labels
-        """
-        X = []  # Symptom descriptions
-        y = []  # Disease labels
-        
-        for disease in self.diseases:
-            disease_name = disease['name']
-            symptoms = disease['symptoms']
-            
-            # Create training examples
-            # Each symptom combination creates a training instance
-            symptom_text = ' '.join(symptoms)
-            X.append(symptom_text)
-            y.append(disease_name)
-            
-            # Add variations with different symptom combinations
-            if len(symptoms) > 2:
-                for i in range(len(symptoms)):
-                    # Create partial symptom combinations by removing one symptom
-                    partial_symptoms = symptoms[:i] + symptoms[i+1:]
-                    if len(partial_symptoms) >= 2:
-                        symptom_text = ' '.join(partial_symptoms)
-                        X.append(symptom_text)
-                        y.append(disease_name)
-        
-        return X, y
-    
-    def train(self):
-        """Train the disease prediction model"""
-        if not self.diseases:
-            print("No disease data available for training")
-            return False
-        
-        # Prepare training data
-        X, y = self.prepare_training_data()
-        
-        if len(X) == 0:
-            print("No training data available")
-            return False
-        
-        # Transform text to TF-IDF features
-        X_vectorized = self.vectorizer.fit_transform(X)
-        
-        # Train the model
-        self.model.fit(X_vectorized, y)
-        self.is_trained = True
-        
-        print(f"Model trained with {len(self.diseases)} diseases")
-        return True
-    
-    def predict(self, symptoms_text):
-        """
-        Predict disease based on symptoms
-        
-        Args:
-            symptoms_text (str): User's symptom description
-            
-        Returns:
-            list: List of tuples (disease_name, probability)
-        """
-        if not self.is_trained:
-            self.train()
-        
-        # Transform input symptoms
-        X = self.vectorizer.transform([symptoms_text])
-        
-        # Get prediction probabilities
-        probabilities = self.model.predict_proba(X)[0]
-        diseases = self.model.classes_
-        
-        # Create list of (disease, probability) tuples
-        predictions = list(zip(diseases, probabilities))
-        
-        # Sort by probability (descending)
-        predictions.sort(key=lambda x: x[1], reverse=True)
-        
-        # Return top predictions with probability > 0.01
-        return [(disease, prob) for disease, prob in predictions if prob > 0.01]
-    
-    def get_disease_info(self, disease_name):
-        """
-        Get detailed information about a disease
-        
-        Args:
-            disease_name (str): Name of the disease
-            
-        Returns:
-            dict: Disease information including symptoms and medicines
-        """
-        for disease in self.diseases:
-            if disease['name'].lower() == disease_name.lower():
-                return disease
-        return None
-    
-    def match_symptoms(self, user_symptoms):
-        """
-        Match user symptoms with diseases using rule-based approach
-        
-        Args:
-            user_symptoms (list): List of user symptom keywords
-            
-        Returns:
-            list: List of matching diseases with match scores
-        """
-        disease_scores = {}
-        
-        for disease in self.diseases:
-            disease_name = disease['name']
-            disease_symptoms = [s.lower() for s in disease['symptoms']]
-            
-            # Calculate match score
-            matches = 0
-            for user_symptom in user_symptoms:
-                user_symptom = user_symptom.lower()
-                # Check for exact or partial matches
-                for disease_symptom in disease_symptoms:
-                    if user_symptom in disease_symptom or disease_symptom in user_symptom:
-                        matches += 1
-                        break
-            
-            if matches > 0:
-                # Calculate match percentage
-                match_percentage = (matches / len(disease_symptoms)) * 100
-                disease_scores[disease_name] = {
-                    'matches': matches,
-                    'total_symptoms': len(disease_symptoms),
-                    'match_percentage': match_percentage
-                }
-        
-        # Sort by number of matches
-        sorted_diseases = sorted(
-            disease_scores.items(),
-            key=lambda x: (x[1]['matches'], x[1]['match_percentage']),
-            reverse=True
-        )
-        
-        return sorted_diseases
-    
-    def save_model(self, model_dir='models'):
-        """Save trained model and vectorizer"""
-        if not os.path.exists(model_dir):
-            os.makedirs(model_dir)
-        
-        if self.is_trained:
-            joblib.dump(self.model, os.path.join(model_dir, 'disease_model.pkl'))
-            joblib.dump(self.vectorizer, os.path.join(model_dir, 'vectorizer.pkl'))
-            print("Model saved successfully")
-        else:
-            print("Model not trained yet")
-    
-    def load_model(self, model_dir='models'):
-        """Load pre-trained model and vectorizer"""
-        try:
-            self.model = joblib.load(os.path.join(model_dir, 'disease_model.pkl'))
-            self.vectorizer = joblib.load(os.path.join(model_dir, 'vectorizer.pkl'))
-            self.is_trained = True
-            print("Model loaded successfully")
-            return True
-        except FileNotFoundError:
-            print("No saved model found. Training new model...")
-            return False
+        if not self._scenario_dialog_samples or top_k <= 0:
+            return []
+
+        user_tokens = set(self.normalize_text(text).split())
+        if not user_tokens:
+            return []
+
+        scored = []
+        for idx, sample in enumerate(self._scenario_dialog_samples):
+            tokens = sample.get('tokens') or set()
+            if not tokens:
+                continue
+            common = len(user_tokens & tokens)
+            if common <= 0:
+                continue
+            # Prefer higher overlap, then slightly prefer smaller scenarios (more specific).
+            overlap = common / max(1, len(tokens))
+            scored.append((overlap, common, -len(tokens), -idx))
+
+        if not scored:
+            return []
+
+        scored.sort(reverse=True)
+        followups = []
+        for _, __, ___, neg_idx in scored:
+            sample = self._scenario_dialog_samples[-neg_idx]
+            for line in (sample.get('doctor_lines') or []):
+                if line:
+                    followups.append(line)
+                    if len(followups) >= top_k:
+                        return followups[:top_k]
+
+        return followups[:top_k]

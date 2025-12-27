@@ -4,7 +4,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    fav i
+
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
@@ -16,20 +16,35 @@
     <title>{% block title %}Anna Balla Chat_Bot{% endblock %}</title>
 
     <style>
+        :root {
+            --bg: #212121;
+            --panel: #2f2f2f;
+            --bubble-bot: #1f1f1f;
+            --bubble-user: #3a3a3a;
+            --text: #e6e6e6;
+            --text-strong: #ffffff;
+            --text-muted: rgba(255,255,255,0.78);
+            --border: rgba(255,255,255,0.06);
+            --border-soft: rgba(255,255,255,0.03);
+            --max-content: 960px;
+            --radius-lg: 16px;
+            --radius-md: 12px;
+        }
+
         body {
-            background: #212121;
-            height: 100vh;
+            background: var(--bg);
+            min-height: 100vh;
             margin: 0;
             display: flex;
             flex-direction: column;
-            color: #e6e6e6;
+            color: var(--text);
         }
 
         .content {
             flex: 1;
             overflow-y: auto;
             /* leave space for fixed navbar + bottom chat bar */
-            padding: 88px 1.25rem 140px;
+            padding: calc(var(--navbar-height, 88px) + 12px) 1.25rem calc(140px + env(safe-area-inset-bottom, 0px));
         }
 
         @media (min-width: 992px) {
@@ -43,14 +58,14 @@
             width: 100%;
             position: fixed;
             bottom: 0;
-            background: #212121;
+            background: var(--bg);
             z-index: 1000;
             padding: 12px 20px;
-            border-top: 1px solid rgba(255,255,255,0.03);
+            border-top: 1px solid var(--border-soft);
         }
 
         .search-bar-container {
-            max-width: 960px;
+            max-width: var(--max-content);
             margin: 0 auto;
         }
 
@@ -58,29 +73,29 @@
             text-align: center;
             color: #6c757d;
             padding: 10px;
-            background: #212121;
+            background: var(--bg);
             font-size: 0.9rem;
         }
 
         .main-card {
-            background: #2f2f2f;
+            background: var(--panel);
             padding: 1.25rem;
             border-radius: 8px;
-            color: #e6e6e6;
-            max-width: 960px;
+            color: var(--text);
+            max-width: var(--max-content);
             margin: 0 auto;
         }
 
         .bot-card {
-            background: #1f1f1f;
-            color: #e6e6e6;
-            border: 1px solid rgba(255,255,255,0.06);
+            background: var(--bubble-bot);
+            color: var(--text);
+            border: 1px solid var(--border);
             border-radius: 14px;
         }
 
         .bot-card .card-title {
             margin-bottom: 0.5rem;
-            color: #ffffff;
+            color: var(--text-strong);
         }
 
         .bot-card .card-text {
@@ -111,30 +126,70 @@
 
         .chat-bubble {
             max-width: min(720px, 92%);
-            border-radius: 16px;
+            border-radius: var(--radius-lg);
             padding: 12px 14px;
-            border: 1px solid rgba(255,255,255,0.06);
-            line-height: 1.45;
+            border: 1px solid var(--border);
+            line-height: 1.55;
+            overflow-wrap: anywhere;
+            word-break: break-word;
         }
 
         .chat-bubble-user {
-            background: #3a3a3a;
+            background: var(--bubble-user);
             color: rgba(255,255,255,0.95);
         }
 
         .chat-bubble-bot {
-            background: #1f1f1f;
+            background: var(--bubble-bot);
             color: rgba(255,255,255,0.92);
         }
 
         .chat-name {
             font-weight: 600;
             margin-bottom: 6px;
-            color: #ffffff;
+            color: var(--text-strong);
         }
 
         .chat-text {
             white-space: normal;
+        }
+
+        /* Make bot-rendered content (images/links/lists) behave on small screens */
+        .chat-text img {
+            max-width: min(220px, 100%);
+            height: auto;
+            display: block;
+        }
+
+        .chat-text ul {
+            padding-left: 1.1rem;
+        }
+
+        .chat-text a {
+            color: rgba(255,255,255,0.92);
+            text-decoration: underline;
+        }
+
+        /* Mobile polish */
+        @media (max-width: 576px) {
+            .content {
+                padding-left: 0.9rem;
+                padding-right: 0.9rem;
+                padding-bottom: calc(148px + env(safe-area-inset-bottom, 0px));
+            }
+
+            .main-card {
+                padding: 0.95rem;
+                border-radius: var(--radius-md);
+            }
+
+            .chat-bubble {
+                max-width: 96%;
+            }
+
+            .programmer-text {
+                font-size: 0.85rem;
+            }
         }
     </style>
 
@@ -142,10 +197,10 @@
 <body>
 
 <!-- Navbar -->
-<nav class="navbar navbar-dark fixed-top" style="background: #212121">
-    <div class="container-fluid mx-4 my-auto">
+<nav id="top-navbar" class="navbar navbar-dark fixed-top" style="background: var(--bg)">
+    <div class="container-fluid mx-2 my-auto">
         <a class="navbar-brand" style="color: rgb(155 155 155)" href="/">
-            <img class="mx-3" src="/static/img/logo.png" alt="" width="40" height="40" onerror="this.style.display='none'">
+            <img class="mx-2" src="{{ url_for('static', filename='logo.png') }}" alt="" width="96" height="96" onerror="this.style.display='none'">
             Anna Balla
         </a>
         <a class="btn btn-outline-secondary" style="border-radius: 50%" href="/?reset=1">
@@ -189,9 +244,18 @@
 
 <script>
     (function () {
+        const navbar = document.getElementById('top-navbar');
         const form = document.getElementById('chat-form');
         const input = form ? form.querySelector('input[name="query"]') : null;
         const board = document.getElementById('chat-board');
+
+        function syncNavbarHeight() {
+            if (!navbar) return;
+            const h = Math.ceil(navbar.getBoundingClientRect().height);
+            if (h > 0) {
+                document.documentElement.style.setProperty('--navbar-height', h + 'px');
+            }
+        }
 
         function scrollToBottom() {
             if (!board) return;
@@ -259,6 +323,10 @@
                 }
             });
         }
+
+        // Ensure content isn't hidden under the fixed navbar
+        syncNavbarHeight();
+        window.addEventListener('resize', syncNavbarHeight);
 
         // Initial scroll on load
         setTimeout(scrollToBottom, 50);

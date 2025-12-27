@@ -23,8 +23,11 @@
                             {% endif %}
                         {% endfor %}
                     {% else %}
-                        <div class="text-muted" style="padding: 0.75rem 0.25rem;">
-                            Send a message below to start.
+                        <div class="chat-row chat-row-bot">
+                            <div class="chat-bubble chat-bubble-bot">
+                                <div class="chat-name">Anna Balla</div>
+                                <div class="chat-text">{{ welcome_message|safe }}</div>
+                            </div>
                         </div>
                     {% endif %}
                 </div>

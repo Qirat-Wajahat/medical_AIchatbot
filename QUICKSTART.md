@@ -21,13 +21,16 @@ cd medical_AIchatbot
 pip install -r requirements.txt
 ```
 
+On Windows (recommended), use a virtual environment:
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+```
+
 The required packages include:
 - `flask` - Web application framework (chat UI)
-- `pandas` - Data manipulation
-- `numpy` - Numerical computing
-- `scikit-learn` - Machine learning
 - `nltk` - Natural language processing
-- `joblib` - Model persistence
 
 ### Step 4: Verify Installation
 Run the test script to ensure everything is working:
@@ -99,6 +102,17 @@ The UI intentionally hides internal model details (confidence, ranking, etc.) an
 
 ## Troubleshooting
 
+### `ModuleNotFoundError: No module named 'flask'`
+This usually means you’re running `python app_flask.py` with a different Python than the one where you installed packages.
+
+Fix (PowerShell):
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python app_flask.py
+```
+
 ### NLTK Data Not Found
 If you see an error about missing NLTK data:
 ```python
@@ -120,7 +134,7 @@ pip install -r requirements.txt --upgrade
 Edit `data/medicines.json` to add new diseases with their symptoms and medicines.
 
 ### Updating Medical Reference
-Edit `data/medical_reference.txt` to add or update medical information.
+Medical reference TXT is not used in this project.
 
 ### Modifying the UI
 Edit templates in `templates/` to customize the user interface and styling.
@@ -129,24 +143,26 @@ Edit templates in `templates/` to customize the user interface and styling.
 ```
 medical_AIchatbot/
 ├── app_flask.py                # Main Flask application
-├── app.py                      # (Legacy) old Streamlit entry (deprecated)
 ├── test_chatbot.py            # Test script
 ├── requirements.txt           # Dependencies
+├── static/
+│   └── logo.png                # App logo (served at /static/logo.png)
 ├── data/
 │   ├── medicines.json        # Disease and medicine database
-│   ├── medicine_items_updated.json # Additional disease/medicine dataset
-│   └── medical_reference.txt # Medical reference text
+│   └── scenarios.txt          # Communication style only
 ├── models/
-│   └── disease_predictor.py  # ML model
-│   ├── disease_model.pkl      # Saved model (created after first run)
-│   └── vectorizer.pkl         # Saved vectorizer (created after first run)
+│   └── disease_predictor.py  # Scenario follow-up retrieval (style-only)
 └── utils/
     ├── preprocessing.py      # NLP utilities
-    └── medical_reference.py  # Reference handler
 templates/
 ├── base.html                  # Layout + bottom chat bar
 └── index.html                 # Chat board
 ```
+
+## Notes
+
+### Data
+The chatbot uses `data/medicines.json` for symptom/condition matching and medicine suggestions.
 
 ## Support
 

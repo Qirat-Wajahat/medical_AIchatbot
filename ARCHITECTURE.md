@@ -33,21 +33,21 @@ This document provides a detailed technical overview of the Medical AI Chatbot a
         │  NLP Preprocessing (utils/preprocessing.py)   │
         │   - cleaning/tokenization/lemmatization       │
         │                                               │
-        │  Disease Predictor (models/disease_predictor) │
-        │   - ML model (TF-IDF + Naive Bayes)           │
-        │   - Rule-based symptom matching               │
-        │   - Model persistence (joblib .pkl)           │
+        │  Knowledge Matcher (app_flask.py)             │
+        │   - Token overlap scoring against             │
+        │     data/medicines.json entries               │
         │                                               │
-        │  Medical Reference (utils/medical_reference)  │
-        │   - reference text lookup                     │
+        │  Style Followups (models/disease_predictor.py)│
+        │   - Retrieves follow-up questions from        │
+        │     data/scenarios.txt (style-only)           │
+        │                                               │
+        │  (No medical_reference.txt lookup)            │
         └──────────────────────┬───────────────────────┘
                                │
                      ┌─────────▼─────────┐
                      │    Data Sources    │
                      │  - medicines.json  │
-                     │  - medicine_items_ │
-                     │    updated.json    │
-                     │  - medical_reference.txt │
+                     │  - scenarios.txt   │
                      └────────────────────┘
 ```
 
@@ -72,31 +72,16 @@ This document provides a detailed technical overview of the Medical AI Chatbot a
 - Model is loaded once at process startup (and restored from `.pkl` if present)
 - User chat history is stored per-browser-session (Flask session cookie)
 
-### 2. Disease Prediction Model (models/disease_predictor.py)
+### 2. Style Follow-ups (models/disease_predictor.py)
 
-**Purpose**: Machine learning-based disease prediction
+**Purpose**: Retrieve follow-up questions from `data/scenarios.txt`.
 
-**Components**:
+**Key rule**: Scenarios are used for communication style only (intake/follow-up questions).
 
-#### ML Model
-- **Algorithm**: Multinomial Naive Bayes
-- **Reason**: Effective for text classification, handles multi-class problems well, fast training
-- **Features**: TF-IDF (Term Frequency-Inverse Document Frequency)
-- **Max Features**: 100 (balanced between accuracy and performance)
-
-#### Rule-Based Matcher
-- **Purpose**: Complement ML predictions with symptom matching
-- **Algorithm**: Keyword matching with scoring
-- **Scoring**: Based on number of matching symptoms and match percentage
-
-#### Training Data Generation
-- **Source**: JSON datasets under `data/` (e.g., `medicines.json`, `medicine_items_updated.json`)
-- **Augmentation**: Creates partial symptom combinations for robustness
-- **Strategy**: For each disease, generates multiple training examples with varying symptom subsets
-
-**Trade-offs**:
-- **Accuracy vs Speed**: Chose Naive Bayes for faster inference over more complex models
-- **Data Size**: Limited dataset compensated by data augmentation and hybrid approach
+**How it works**:
+- Parses scenario blocks into patient-text + doctor-lines
+- Ranks scenarios by token overlap with the user message
+- Returns top follow-up lines (sanitized in `app_flask.py`)
 
 ### 3. NLP Preprocessing (utils/preprocessing.py)
 
@@ -117,50 +102,24 @@ This document provides a detailed technical overview of the Medical AI Chatbot a
 - stopwords: Common word filtering
 - wordnet: Lemmatization dictionary
 
-### 4. Medical Reference Handler (utils/medical_reference.py)
+### 4. Medical Knowledge Base (data/medicines.json)
 
-**Purpose**: Load and retrieve educational medical information
+**Purpose**: Primary medical knowledge source for:
+- likely condition inference
+- medicine recommendations (dosage + URL)
 
-**Features**:
-- Parse structured reference text
-- Disease-specific information lookup
-- Keyword search across all content
-
-**Data Structure**:
-- Text file with disease sections
-- Each section contains: description, duration, prevention, when to see doctor
+**Structure (high level)**:
+- A JSON list of medicine/product-like objects
+- Each object contains fields such as `name`, `disease`, `symptoms`, `dosage`, and `url`
 
 ### 5. Data Sources
 
-#### medicines.json
-**Structure**:
-```json
-{
-  "diseases": [
-    {
-      "name": "Disease Name",
-      "symptoms": ["symptom1", "symptom2", ...],
-      "medicines": [
-        {
-          "name": "Medicine Name",
-          "dosage": "Dosage info",
-          "purpose": "Purpose description"
-        }
-      ]
-    }
-  ]
-}
-```
+#### scenarios.txt
+**Purpose**: Communication style only.
 
-**Content**:
-- 10 common diseases
-- 60+ symptoms total
-- 30+ medicine recommendations
-- Covers diverse medical conditions
-
-#### medical_reference.txt
-**Structure**: Plain text with section markers
-**Content**: Educational information for each disease
+**How it is used**:
+- Used to source follow-up questions (e.g., duration, severity, red flags)
+- Not used as medical knowledge
 
 ## Machine Learning Details
 

@@ -1,6 +1,8 @@
-"""
-Test script for Medical AI Chatbot
-Validates all components work together
+"""Test script for Medical AI Chatbot.
+
+This project uses:
+- scenarios.txt for communication style only
+- medicines.json as the medical knowledge base (symptoms/disease -> medicine suggestions)
 """
 
 import sys
@@ -11,7 +13,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from models.disease_predictor import DiseasePredictionModel
 from utils.preprocessing import TextPreprocessor
-from utils.medical_reference import MedicalReference
+import json
 
 
 def test_components():
@@ -20,24 +22,29 @@ def test_components():
     print("MEDICAL AI CHATBOT - Component Test")
     print("="*60)
     
-    # Test 1: Load models
+    # Test 1: Load components
     print("\n1. Loading models...")
     try:
-        predictor = DiseasePredictionModel(data_path='data/medicines.json')
+        predictor = DiseasePredictionModel(
+            data_paths=['data/medicines.json'],
+            scenario_path='data/scenarios.txt',
+            use_scenarios_for_training=False,
+        )
         preprocessor = TextPreprocessor()
-        reference = MedicalReference(reference_path='data/medical_reference.txt')
         print("   ✓ All models loaded successfully")
     except Exception as e:
         print(f"   ✗ Error loading models: {e}")
         return False
     
-    # Test 2: Train ML model
-    print("\n2. Training disease prediction model...")
+    # Test 2: Load medicines.json
+    print("\n2. Loading medicines.json...")
     try:
-        predictor.train()
-        print(f"   ✓ Model trained with {len(predictor.diseases)} diseases")
+        with open('data/medicines.json', 'r', encoding='utf-8') as f:
+            items = json.load(f)
+        assert isinstance(items, list) and len(items) > 0
+        print(f"   ✓ Loaded {len(items)} medicine items")
     except Exception as e:
-        print(f"   ✗ Error training model: {e}")
+        print(f"   ✗ Error loading medicines.json: {e}")
         return False
     
     # Test 3: Test preprocessing
@@ -52,98 +59,63 @@ def test_components():
         print(f"   ✗ Error in preprocessing: {e}")
         return False
     
-    # Test 4: Test disease prediction
-    print("\n4. Testing disease prediction...")
+    # Test 4: Catalog symptom matching (basic)
+    print("\n4. Testing medicines.json symptom matching...")
     try:
-        symptoms = "fever headache body aches fatigue"
-        predictions = predictor.predict(symptoms)
-        print(f"   Input symptoms: {symptoms}")
-        print(f"   Top predictions:")
-        for disease, prob in predictions[:3]:
-            print(f"     - {disease}: {prob:.2%}")
-        print("   ✓ Disease prediction works correctly")
-    except Exception as e:
-        print(f"   ✗ Error in prediction: {e}")
-        return False
-    
-    # Test 5: Test rule-based matching
-    print("\n5. Testing rule-based symptom matching...")
-    try:
-        processed = preprocessor.preprocess(symptoms)
-        matches = predictor.match_symptoms(processed)
-        print(f"   Top matches:")
-        for disease, info in matches[:3]:
-            print(f"     - {disease}: {info['matches']} symptom matches")
-        print("   ✓ Rule-based matching works correctly")
+        from app_flask import _recommend_one_medicine_per_cluster
+        symptoms = "fever headache body pain"
+        recs = _recommend_one_medicine_per_cluster(symptoms, max_clusters=3)
+        print(f"   Input: {symptoms}")
+        print(f"   Detected groups: {[r.get('cluster_label') for r in recs]}")
+        print(f"   Best medicines: {[(r.get('medicine') or {}).get('name') for r in recs]}")
+        if not recs:
+            print("   ✗ No recommendations returned")
+            return False
+
+        # Ensure we don't repeat the same medicine across groups.
+        meds = [((r.get('medicine') or {}).get('name') or '').strip().lower() for r in recs]
+        meds = [m for m in meds if m]
+        if len(meds) != len(set(meds)):
+            print("   ✗ Duplicate medicine recommendations found")
+            return False
+
+        # Ensure we provide a reason.
+        if not (recs[0].get('why') or []):
+            print("   ✗ Missing explanation for recommendation")
+            return False
+
+        print("   ✓ Matching works correctly")
     except Exception as e:
         print(f"   ✗ Error in matching: {e}")
         return False
     
-    # Test 6: Test disease information retrieval
-    print("\n6. Testing disease information retrieval...")
+    # Test 5: Scenario follow-ups are style-only (sanitized)
+    print("\n5. Testing scenario style follow-ups...")
     try:
-        disease_name = "Common Cold"
-        disease_info = predictor.get_disease_info(disease_name)
-        if disease_info:
-            print(f"   Disease: {disease_name}")
-            print(f"   Symptoms: {len(disease_info.get('symptoms', []))} found")
-            print(f"   Medicines: {len(disease_info.get('medicines', []))} found")
-            print("   ✓ Disease info retrieval works correctly")
-        else:
-            print("   ✗ Could not find disease info")
+        from app_flask import _sanitize_style_line
+        sample_lines = predictor.get_scenario_followups("I have fever and sore throat", top_k=8)
+        cleaned = [s for s in (_sanitize_style_line(l) for l in sample_lines) if s]
+        print(f"   Raw lines: {len(sample_lines)} | Clean lines: {len(cleaned)}")
+        if not cleaned:
+            print("   ✗ No style follow-up questions found (check scenarios.txt)")
             return False
+        print(f"     Example: {cleaned[0]}")
+        print("   ✓ Style follow-ups available")
     except Exception as e:
-        print(f"   ✗ Error retrieving disease info: {e}")
+        print(f"   ✗ Error in style follow-ups: {e}")
         return False
-    
-    # Test 7: Test medical reference
-    print("\n7. Testing medical reference lookup...")
+
+    # Test 6: End-to-end simulation via Flask analyzer
+    print("\n6. Running end-to-end simulation...")
     try:
-        ref_info = reference.get_disease_info("Influenza")
-        if ref_info:
-            print(f"   Found reference for Influenza")
-            print(f"   Reference length: {len(ref_info)} characters")
-            print("   ✓ Medical reference works correctly")
-        else:
-            print("   ✗ Could not find reference")
-            return False
-    except Exception as e:
-        print(f"   ✗ Error in reference lookup: {e}")
-        return False
-    
-    # Test 8: End-to-end simulation
-    print("\n8. Running end-to-end simulation...")
-    try:
-        # Simulate user input
-        user_input = "I have a runny nose, sneezing, and sore throat"
+        from app_flask import analyze_symptoms
+        user_input = "I have fever, headache, and body pain"
         print(f"   User input: {user_input}")
-        
-        # Process
-        processed = preprocessor.preprocess(user_input)
-        processed_text = ' '.join(processed)
-        
-        # Predict
-        ml_predictions = predictor.predict(processed_text)
-        rule_matches = predictor.match_symptoms(processed)
-        
-        # Get top disease
-        if ml_predictions:
-            top_disease = ml_predictions[0][0]
-            print(f"   Top prediction: {top_disease}")
-            
-            # Get disease info
-            disease_info = predictor.get_disease_info(top_disease)
-            if disease_info:
-                medicines = disease_info.get('medicines', [])
-                print(f"   Recommended medicines: {len(medicines)}")
-                if medicines:
-                    print(f"     Example: {medicines[0]['name']}")
-            
-            # Get reference
-            ref_info = reference.get_disease_info(top_disease)
-            if ref_info:
-                print(f"   Medical reference available: Yes")
-        
+        out = analyze_symptoms(user_input, user_name=None)
+        ok = bool((out or {}).get('bot_message'))
+        print(f"   Response generated: {ok}")
+        if not ok:
+            return False
         print("   ✓ End-to-end simulation successful")
     except Exception as e:
         print(f"   ✗ Error in end-to-end test: {e}")
@@ -153,7 +125,7 @@ def test_components():
     print("ALL TESTS PASSED! ✓")
     print("="*60)
     print("\nThe Medical AI Chatbot is ready to use!")
-    print("Run: streamlit run app.py")
+    print("Run: python app_flask.py")
     return True
 
 

@@ -1,6 +1,6 @@
 # 🏥 Medical AI Chatbot
 
-An end-to-end AI-powered medical chatbot that analyzes patient symptoms using NLP and machine learning to predict possible diseases, recommend relevant medicines from real-world data, and provide educational medical information.
+A Flask-based medical chatbot that analyzes user symptoms, suggests likely conditions, and recommends relevant medicines (with dosage + URL) from a JSON knowledge base.
 
 ## ⚠️ Medical Disclaimer
 
@@ -14,35 +14,34 @@ An end-to-end AI-powered medical chatbot that analyzes patient symptoms using NL
 
 ## 🌟 Features
 
-- **Symptom Analysis**: Uses Natural Language Processing (NLP) to extract and process patient symptoms
-- **Disease Prediction**: Machine Learning models predict possible diseases based on symptoms
-- **Medicine Recommendations**: Suggests relevant medicines from a comprehensive JSON database
-- **Medical Reference**: Displays educational medical information from reference texts
-- **User-Friendly Interface**: Built with Streamlit for an intuitive user experience
-- **Educational Disclaimer**: Includes prominent warnings about proper medical consultation
+- **Symptom Analysis**: Lightweight NLP-style normalization for user symptom text
+- **Condition Inference**: Matches symptoms against `data/medicines.json` (knowledge base)
+- **Medicine Recommendations**: Suggests relevant medicines (dosage + URL) from the same JSON catalog
+- **User-Friendly Interface**: Flask web UI (templates + static assets)
+- **Educational Disclaimer**: Includes warnings about proper medical consultation
 
 ## 📁 Project Structure
 
 ```
 medical_AIchatbot/
-├── app.py                          # Original Streamlit application (kept for reference)
 ├── app_flask.py                    # New Flask web application (recommended)
 ├── requirements.txt                # Python dependencies
 ├── README.md                       # Project documentation
+├── static/                          # Flask static assets
+│   └── logo.png                     # App logo (served at /static/logo.png)
 ├── templates/                      # Flask HTML templates
 │   ├── base.html
+│   ├── home.html
 │   └── index.html
 ├── data/
-│   ├── medicines.json              # Disease and medicine database
-│   ├── medicine_items_updated.json # Optional larger dataset
-│   └── medical_reference.txt       # Medical reference information
+│   ├── medicines.json              # Medical knowledge base (symptoms/disease -> medicine + dosage + URL)
+│   └── scenarios.txt               # Communication style only (follow-up questions)
 ├── models/
 │   ├── __init__.py
-│   └── disease_predictor.py        # ML model for disease prediction
+│   └── disease_predictor.py        # Scenario follow-up retrieval (style-only)
 └── utils/
    ├── __init__.py
-   ├── preprocessing.py            # NLP preprocessing utilities
-   └── medical_reference.py        # Reference text handler
+   └── preprocessing.py            # NLP preprocessing utilities
 ```
 
 ## 🚀 Installation
@@ -72,7 +71,7 @@ medical_AIchatbot/
 
 ### Running the Application
 
-You can run the original Streamlit app or the new Flask app. The Flask app provides a simple, responsive UI using standard templates and may be easier to customize.
+Run the Flask app (templates-based UI).
 
 1. **Install dependencies** (if you haven't already):
 ```powershell
@@ -88,14 +87,9 @@ python app_flask.py
 
 - Access: http://localhost:5000
 
-3. **(Optional) Start the Streamlit app** (kept for reference):
-```powershell
-streamlit run app.py
-```
-
 4. **Use the chatbot**:
 - Enter your symptoms in the input box and submit.
-- Review predicted diseases, associated symptoms, medicines, and reference text.
+- Review likely conditions and medicine suggestions.
 - **Always consult a healthcare professional** for diagnosis and treatment.
 
 ### Example Inputs
@@ -113,15 +107,18 @@ streamlit run app.py
 - Removes stopwords while preserving medical terms
 - Lemmatizes tokens to base forms
 
-### 2. Disease Prediction
-- **ML Model**: Uses Multinomial Naive Bayes with TF-IDF features
-- **Rule-Based Matching**: Matches symptoms with disease database
+### 2. Condition Inference
+- Matches user-described symptoms to entries in `data/medicines.json`.
 - **Hybrid Approach**: Combines both methods for better accuracy
 
 ### 3. Medicine Recommendation
-- Retrieves medicines from JSON database
+- Retrieves medicines from `data/medicines.json`
 - Shows dosage and purpose for each medicine
 - Provides comprehensive treatment information
+
+#### Optional: medicine images
+- `data/medicine_items_updated.json` can be used as a best-effort lookup for medicine product images.
+- Images may not always appear if the recommended medicine name doesn’t match a product name in the catalog.
 
 ### 4. Medical Reference
 - Displays educational information about diseases
@@ -161,6 +158,19 @@ scikit-learn>=1.2.0
 nltk>=3.8
 joblib>=1.2.0
 flask>=2.0
+```
+
+## 🧯 Troubleshooting
+
+### `ModuleNotFoundError: No module named 'flask'`
+This usually means you’re running the app with a different Python than the one where you installed packages.
+
+On Windows PowerShell:
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python app_flask.py
 ```
 
 ## 🔮 Future Enhancements
