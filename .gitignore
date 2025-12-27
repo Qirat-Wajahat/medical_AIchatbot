@@ -24,7 +24,7 @@ wheels/
 venv/
 env/
 ENV/
-.venv
+.venv/
 
 # IDE
 .vscode/
@@ -34,17 +34,11 @@ ENV/
 *~
 
 # Jupyter Notebook
-.ipynb_checkpoints
-
-# Model files (optional, depending on size)
-models/*.pkl
+.ipynb_checkpoints/
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Streamlit
-.streamlit/
-
-# NLTK data
+# NLTK data (optional, if downloaded locally)
 nltk_data/
