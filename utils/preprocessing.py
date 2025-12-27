@@ -3,7 +3,9 @@ NLP Preprocessing Utilities for Medical Chatbot
 Handles text preprocessing and symptom extraction
 """
 
+import os
 import re
+
 import nltk
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
@@ -12,35 +14,66 @@ from nltk.stem import WordNetLemmatizer
 # Download required NLTK data
 def download_nltk_data():
     """Download required NLTK datasets"""
+    # Allow hosts without outbound internet to skip downloads.
+    if os.environ.get('DISABLE_NLTK_DOWNLOADS') == '1':
+        return
+
     try:
         nltk.data.find('tokenizers/punkt')
     except LookupError:
-        nltk.download('punkt', quiet=True)
+        try:
+            nltk.download('punkt', quiet=True)
+        except Exception:
+            pass
     
     try:
         nltk.data.find('tokenizers/punkt_tab')
     except LookupError:
-        nltk.download('punkt_tab', quiet=True)
+        try:
+            nltk.download('punkt_tab', quiet=True)
+        except Exception:
+            pass
     
     try:
         nltk.data.find('corpora/stopwords')
     except LookupError:
-        nltk.download('stopwords', quiet=True)
+        try:
+            nltk.download('stopwords', quiet=True)
+        except Exception:
+            pass
     
     try:
         nltk.data.find('corpora/wordnet')
     except LookupError:
-        nltk.download('wordnet', quiet=True)
+        try:
+            nltk.download('wordnet', quiet=True)
+        except Exception:
+            pass
 
 class TextPreprocessor:
     """Preprocesses text for medical symptom analysis"""
     
     def __init__(self):
+        self._use_nltk = True
         download_nltk_data()
-        self.lemmatizer = WordNetLemmatizer()
-        self.stop_words = set(stopwords.words('english'))
+
+        try:
+            self.lemmatizer = WordNetLemmatizer()
+            self.stop_words = set(stopwords.words('english'))
+        except LookupError:
+            # Host may not have NLTK data available (or downloads are blocked).
+            # Fall back to a lightweight tokenizer with minimal stopwords.
+            self._use_nltk = False
+            self.lemmatizer = None
+            self.stop_words = {
+                'a', 'an', 'the', 'and', 'or', 'but', 'if', 'then', 'else',
+                'i', 'me', 'my', 'we', 'our', 'you', 'your',
+                'is', 'are', 'was', 'were', 'be', 'been', 'being',
+                'to', 'of', 'in', 'on', 'for', 'with', 'at', 'by', 'from'
+            }
+
         # Keep medical-relevant words
-        self.medical_stopwords = self.stop_words - {
+        self.medical_stopwords = set(self.stop_words) - {
             'pain', 'fever', 'no', 'not', 'severe', 'mild', 'high', 'low'
         }
     
@@ -78,7 +111,9 @@ class TextPreprocessor:
         Returns:
             list: List of tokens
         """
-        return word_tokenize(text)
+        if self._use_nltk:
+            return word_tokenize(text)
+        return re.findall(r"[a-zA-Z]+", text)
     
     def remove_stopwords(self, tokens):
         """
@@ -102,6 +137,8 @@ class TextPreprocessor:
         Returns:
             list: Lemmatized tokens
         """
+        if not self._use_nltk or not self.lemmatizer:
+            return tokens
         return [self.lemmatizer.lemmatize(token) for token in tokens]
     
     def preprocess(self, text):
