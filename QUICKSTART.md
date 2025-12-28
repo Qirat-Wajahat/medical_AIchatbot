@@ -28,6 +28,13 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
+Notes:
+- `requirements.txt` includes `gunicorn` for production deployments on Linux/macOS.
+- On Windows, `gunicorn` may not install/run. If you hit issues, install the core deps instead:
+   ```powershell
+   python -m pip install flask nltk
+   ```
+
 The required packages include:
 - `flask` - Web application framework (chat UI)
 - `nltk` - Natural language processing
@@ -58,8 +65,7 @@ Then open your browser at `http://127.0.0.1:5000`.
 2. **Continue the conversation**: Send follow-up messages (e.g., "and cough") and the app will keep chat history.
 
 3. **Review Results**: The chatbot replies in a short patient-facing format:
-   - A likely condition (when it can infer one)
-   - A commonly recommended OTC medicine (when appropriate)
+   - One best-matching medicine per detected symptom group (with image/dosage/link when available)
    - 1–2 follow-up questions
    - A brief safety note
 
@@ -89,7 +95,7 @@ sneezing, itchy nose, and watery eyes
 
 ## Understanding the Results
 
-The UI intentionally hides internal model details (confidence, ranking, etc.) and shows only the patient-facing reply.
+The UI intentionally avoids showing internal scoring details and only shows a patient-facing reply.
 
 ## Important Disclaimers
 
@@ -116,8 +122,10 @@ python app_flask.py
 ### NLTK Data Not Found
 If you see an error about missing NLTK data:
 ```python
-python -c "import nltk; nltk.download('punkt_tab'); nltk.download('stopwords'); nltk.download('wordnet')"
+python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('stopwords'); nltk.download('wordnet')"
 ```
+
+If your environment cannot download NLTK data, set `DISABLE_NLTK_DOWNLOADS=1` and the app will fall back to a lightweight tokenizer.
 
 ### Port Already in Use
 If port 5000 is already in use, edit the port at the bottom of `app_flask.py` or run on a different port.
@@ -130,8 +138,11 @@ pip install -r requirements.txt --upgrade
 
 ## Customization
 
-### Adding New Diseases
-Edit `data/medicines.json` to add new diseases with their symptoms and medicines.
+### Adding / Updating Knowledge
+Edit `data/medicines.json` to add or update catalog entries. Each item can include fields like:
+- `name`, `@type`, `disease`, `symptoms`, `dosage`, `image`, `url`
+
+The app’s recommendations come from these entries.
 
 ### Updating Medical Reference
 Medical reference TXT is not used in this project.
@@ -146,7 +157,8 @@ medical_AIchatbot/
 ├── test_chatbot.py            # Test script
 ├── requirements.txt           # Dependencies
 ├── static/
-│   └── logo.png                # App logo (served at /static/logo.png)
+│   ├── logo.png                # App logo (served at /static/logo.png)
+│   └── img/                    # Additional images
 ├── data/
 │   ├── medicines.json        # Disease and medicine database
 │   └── scenarios.txt          # Communication style only
@@ -157,12 +169,14 @@ medical_AIchatbot/
 templates/
 ├── base.html                  # Layout + bottom chat bar
 └── index.html                 # Chat board
+
+wsgi.py                        # WSGI entrypoint for production hosts
 ```
 
 ## Notes
 
 ### Data
-The chatbot uses `data/medicines.json` for symptom/condition matching and medicine suggestions.
+The chatbot uses `data/medicines.json` for symptom matching and medicine suggestions.
 
 ## Support
 
@@ -174,7 +188,7 @@ For issues or questions:
 
 After successfully running the chatbot:
 1. Try different symptom combinations
-2. Explore the medical reference information
+2. Review the recommendation output (image/dosage/link)
 3. Review the code to understand how it works
 4. Consider contributing improvements
 

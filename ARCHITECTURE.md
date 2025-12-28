@@ -41,7 +41,6 @@ This document provides a detailed technical overview of the Medical AI Chatbot a
         │   - Retrieves follow-up questions from        │
         │     data/scenarios.txt (style-only)           │
         │                                               │
-        │  (No medical_reference.txt lookup)            │
         └──────────────────────┬───────────────────────┘
                                │
                      ┌─────────▼─────────┐
@@ -66,11 +65,11 @@ This document provides a detailed technical overview of the Medical AI Chatbot a
 **Design Pattern**: MVC-ish
 - View: Jinja templates + minimal client-side JS
 - Controller: Flask routes (`/` and `/chat`)
-- Model: ML predictor + reference lookup
+- Model: catalog matcher (medicines.json) + scenario follow-up retriever (style-only)
 
 **State Strategy**:
-- Model is loaded once at process startup (and restored from `.pkl` if present)
-- User chat history is stored per-browser-session (Flask session cookie)
+- Data is loaded/cached once at process startup (JSON catalog + scenario samples)
+- User chat history, stage, and short symptom history are stored per-browser-session (Flask session cookie)
 
 ### 2. Style Follow-ups (models/disease_predictor.py)
 
@@ -110,7 +109,11 @@ This document provides a detailed technical overview of the Medical AI Chatbot a
 
 **Structure (high level)**:
 - A JSON list of medicine/product-like objects
-- Each object contains fields such as `name`, `disease`, `symptoms`, `dosage`, and `url`
+- Each object contains fields such as `name`, `@type`, `disease`, `symptoms`, `dosage`, `image`, and `url`
+
+**Important app behavior**:
+- Items without an `image` are skipped (the UI always shows a product image).
+- The recommender avoids suggesting antibiotics by default.
 
 ### 5. Data Sources
 
@@ -121,63 +124,21 @@ This document provides a detailed technical overview of the Medical AI Chatbot a
 - Used to source follow-up questions (e.g., duration, severity, red flags)
 - Not used as medical knowledge
 
-## Machine Learning Details
+## Recommendation Logic (No ML Training)
 
-### Model Training
+This project intentionally does **not** train or persist a machine-learning classifier.
 
-**Training Data Generation**:
-```python
-# For each disease with N symptoms:
-# 1. Full symptom set → 1 example
-# 2. N partial sets (removing 1 symptom each) → N examples
-# Total: 1 + N examples per disease
-```
-
-**Example**:
-- Disease: Common Cold
-- Symptoms: [runny nose, sneezing, cough, sore throat]
-- Generates 5 training examples:
-  1. "runny nose sneezing cough sore throat"
-  2. "sneezing cough sore throat" (removed runny nose)
-  3. "runny nose cough sore throat" (removed sneezing)
-  4. "runny nose sneezing sore throat" (removed cough)
-  5. "runny nose sneezing cough" (removed sore throat)
-
-**Rationale**: Improves robustness when users don't mention all symptoms
-
-### Hybrid Prediction Strategy
-
-**Why Hybrid?**
-- ML model: Good for partial matches and fuzzy matching
-- Rule-based: Good for exact symptom matches
-- Combined: Better overall accuracy and confidence
-
-**Combination Logic**:
-1. Get ML predictions with probabilities
-2. Get rule-based matches with symptom counts
-3. Rank by: (symptom matches, ML probability)
-4. Display top 3 results
-
-### Feature Engineering
-
-**TF-IDF Vectorization**:
-- Converts symptom text to numerical features
-- Weighs importance of symptoms across diseases
-- Max features: 100 (prevents overfitting with small dataset)
+### High-level flow
+1. **Preprocess input** with `TextPreprocessor` (clean/tokenize/remove stopwords/lemmatize; best-effort).
+2. **Extract symptom keywords** from the known dataset and a small fallback list.
+3. **Detect symptom clusters** (e.g., respiratory, GI, fever/pain, skin, urinary).
+4. For each detected cluster, **score catalog items** by token overlap and a few heuristics:
+   - prefer suitable forms for adult/child (tablet vs syrup)
+   - prefer simpler dosing (once daily)
+   - avoid antibiotics as default suggestions
+5. **Pick one unique medicine per cluster**, then render a patient-facing reply.
 
 ## Design Decisions
-
-### Why Streamlit?
-- **Rapid Development**: Quick prototyping of UI
-- **Python Native**: No separate frontend stack needed
-- **Interactive**: Built-in widgets and state management
-- **Deployment**: Easy deployment options
-
-### Why Naive Bayes?
-- **Small Dataset**: Works well with limited training data
-- **Fast**: Quick inference for real-time predictions
-- **Interpretable**: Clear probability outputs
-- **Text Classification**: Proven for text-based problems
 
 ### Why JSON for Data?
 - **Human Readable**: Easy to edit and maintain
@@ -193,20 +154,13 @@ This document provides a detailed technical overview of the Medical AI Chatbot a
 
 ## Performance Considerations
 
-### Model Loading
-- Loaded at process startup
-- If persisted model files exist, training is skipped
-- Training occurs only when no saved model is available
+### Startup
+- `medicines.json` is loaded into an in-memory catalog cache.
+- `scenarios.txt` is parsed into dialog samples for token-overlap retrieval.
 
-### Prediction Speed
-- ML prediction: < 100ms
-- Rule-based matching: < 50ms
-- Total inference: < 200ms
-
-### Memory Usage
-- Vectorizer: ~1MB
-- Model: < 500KB
-- Total: < 5MB (excluding libraries)
+### Request-time work
+- The recommender uses lightweight token overlap and short heuristic scoring.
+- Flask session is used to store chat history and a small rolling symptom buffer.
 
 ## Security Considerations
 
@@ -228,9 +182,9 @@ This document provides a detailed technical overview of the Medical AI Chatbot a
 ## Scalability
 
 ### Current Limitations
-- 10 diseases (expandable to 100+ without code changes)
-- Single language (English)
-- No user accounts or history
+- English-language heuristics and tokenization
+- No user accounts or long-term storage (session-only)
+- Recommendation quality depends on the completeness/consistency of `medicines.json` fields (symptoms, images, dosage)
 
 ### Future Scalability
 - Database: Replace JSON with SQL/NoSQL for larger datasets
@@ -241,19 +195,17 @@ This document provides a detailed technical overview of the Medical AI Chatbot a
 ## Testing Strategy
 
 ### Test Coverage (test_chatbot.py)
-1. Model loading and initialization
-2. ML model training
-3. NLP preprocessing
-4. Disease prediction
-5. Rule-based matching
-6. Information retrieval
-7. Reference lookup
-8. End-to-end workflow
+1. Component loading (predictor + preprocessor)
+2. `medicines.json` load/parse
+3. NLP preprocessing smoke test
+4. Catalog-based recommendation function
+5. Scenario follow-ups (style-only) + sanitization
+6. End-to-end reply generation (`analyze_symptoms`)
 
 ### Testing Approach
 - Unit tests for individual components
 - Integration test for complete workflow
-- Manual testing via Streamlit UI
+- Manual testing via the Flask web UI
 
 ## Deployment
 
@@ -263,9 +215,9 @@ python app_flask.py
 ```
 
 ### Production Deployment Options
-1. **Streamlit Cloud**: Native hosting platform
-2. **Heroku**: PaaS with buildpacks
-3. **AWS/GCP/Azure**: VM or container-based
+1. **Gunicorn (Linux/macOS)**: Run the Flask app under a WSGI server
+2. **PythonAnywhere / WSGI hosts**: Use `wsgi.py` as the entrypoint
+3. **AWS/GCP/Azure**: VM or container-based deployment
 4. **Docker**: Containerized deployment
 
 ### Environment Requirements
@@ -277,20 +229,17 @@ python app_flask.py
 ## Monitoring and Maintenance
 
 ### Logs
-- Streamlit logs: Model training status
 - Console output: Debug information
 
 ### Maintenance Tasks
 1. Update disease database (medicines.json)
-2. Refresh medical references
-3. Retrain model with new data
-4. Update dependencies
+2. Update scenario prompts (scenarios.txt)
+3. Update dependencies
 
 ### Known Limitations
-- Limited to 10 diseases (design choice for MVP)
 - English language only
-- No personalization or user history
-- Predictions based on limited training data
+- No personalization or user history beyond a single browser session
+- Recommendations depend on dataset quality (symptoms/images/dosage/URLs)
 
 ## Compliance
 
@@ -306,6 +255,6 @@ python app_flask.py
 
 ## Conclusion
 
-This architecture balances simplicity, functionality, and educational value. The hybrid ML-rule approach provides reasonable accuracy with limited data, while the comprehensive disclaimer system ensures responsible use.
+This architecture balances simplicity, functionality, and educational value. A lightweight dataset-matching approach keeps the app easy to run and modify, while the comprehensive disclaimer system encourages responsible use.
 
 The modular design allows for easy extension and maintenance, making it suitable as both a learning project and a foundation for more advanced medical AI systems.

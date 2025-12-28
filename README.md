@@ -1,6 +1,6 @@
 # 🏥 Medical AI Chatbot
 
-A Flask-based medical chatbot that analyzes user symptoms, suggests likely conditions, and recommends relevant medicines (with dosage + URL) from a JSON knowledge base.
+A Flask-based medical chatbot with a chat-style web UI. It collects symptoms over a few messages and recommends **one best-matching medicine per detected symptom group** (including image, dosage, and URL) from `data/medicines.json`.
 
 ## ⚠️ Medical Disclaimer
 
@@ -14,11 +14,11 @@ A Flask-based medical chatbot that analyzes user symptoms, suggests likely condi
 
 ## 🌟 Features
 
-- **Symptom Analysis**: Lightweight NLP-style normalization for user symptom text
-- **Condition Inference**: Matches symptoms against `data/medicines.json` (knowledge base)
-- **Medicine Recommendations**: Suggests relevant medicines (dosage + URL) from the same JSON catalog
-- **User-Friendly Interface**: Flask web UI (templates + static assets)
-- **Educational Disclaimer**: Includes warnings about proper medical consultation
+- **Chat UI (Flask + Templates)**: Bootstrap-based interface with a fixed bottom input bar
+- **Multi-turn intake**: Asks for your name, then collects symptoms across turns (stored in Flask session)
+- **Dataset-backed suggestions**: Uses `data/medicines.json` to recommend medicines (image + dosage + URL)
+- **Follow-up questions (style-only)**: Uses `data/scenarios.txt` only to ask intake-style questions
+- **Safety guardrails**: Avoids recommending antibiotics by default; includes prominent disclaimers
 
 ## 📁 Project Structure
 
@@ -28,10 +28,10 @@ medical_AIchatbot/
 ├── requirements.txt                # Python dependencies
 ├── README.md                       # Project documentation
 ├── static/                          # Flask static assets
-│   └── logo.png                     # App logo (served at /static/logo.png)
+│   ├── logo.png                     # App logo (served at /static/logo.png)
+│   └── img/                         # Additional images
 ├── templates/                      # Flask HTML templates
 │   ├── base.html
-│   ├── home.html
 │   └── index.html
 ├── data/
 │   ├── medicines.json              # Medical knowledge base (symptoms/disease -> medicine + dosage + URL)
@@ -42,6 +42,9 @@ medical_AIchatbot/
 └── utils/
    ├── __init__.py
    └── preprocessing.py            # NLP preprocessing utilities
+
+Other:
+- wsgi.py                           # WSGI entrypoint for production hosts
 ```
 
 ## 🚀 Installation
@@ -64,8 +67,18 @@ medical_AIchatbot/
    pip install -r requirements.txt
    ```
 
+   Notes:
+   - `requirements.txt` includes `gunicorn` for production deployments on Linux/macOS.
+   - On Windows, `gunicorn` may not install/run. If you hit issues, install the core deps instead:
+     ```powershell
+     python -m pip install flask nltk
+     ```
+
 3. **Download NLTK data** (will be done automatically on first run):
-   The application will automatically download required NLTK datasets (punkt, stopwords, wordnet).
+   The application will automatically (best-effort) download required NLTK datasets (punkt, stopwords, wordnet).
+
+   If your environment cannot download NLTK data, you can skip downloads by setting:
+   - `DISABLE_NLTK_DOWNLOADS=1`
 
 ## 💻 Usage
 
@@ -86,6 +99,11 @@ python app_flask.py
 ```
 
 - Access: http://localhost:5000
+
+3. **(Optional) Run the component tests**:
+```powershell
+python test_chatbot.py
+```
 
 4. **Use the chatbot**:
 - Enter your symptoms in the input box and submit.
@@ -108,56 +126,39 @@ python app_flask.py
 - Lemmatizes tokens to base forms
 
 ### 2. Condition Inference
-- Matches user-described symptoms to entries in `data/medicines.json`.
-- **Hybrid Approach**: Combines both methods for better accuracy
+The app does not train an ML classifier. Instead, it:
+- Detects broad symptom clusters (e.g., respiratory, GI, skin, urinary)
+- Scores `data/medicines.json` items by token overlap + simple heuristics
+- Returns **one best medicine per detected cluster** and avoids duplicates
 
 ### 3. Medicine Recommendation
 - Retrieves medicines from `data/medicines.json`
-- Shows dosage and purpose for each medicine
-- Provides comprehensive treatment information
+- Shows **image, dosage, and URL** (when available)
+- Includes a short “why this medicine” explanation
 
-#### Optional: medicine images
-- `data/medicine_items_updated.json` can be used as a best-effort lookup for medicine product images.
-- Images may not always appear if the recommended medicine name doesn’t match a product name in the catalog.
+### 4. Follow-up questions (style-only)
+- Uses `data/scenarios.txt` only as a source of intake-style follow-up questions.
+- Scenario lines are sanitized to avoid diagnosis/treatment statements.
 
-### 4. Medical Reference
-- Displays educational information about diseases
-- Includes descriptions, duration, prevention, and when to see a doctor
+## 📊 What Conditions Are Supported?
 
-## 📊 Supported Diseases
-
-The system currently supports prediction for:
-- Common Cold
-- Influenza (Flu)
-- Migraine
-- Gastroenteritis
-- Allergic Rhinitis
-- Bronchitis
-- Urinary Tract Infection
-- Hypertension
-- Type 2 Diabetes
-- Anxiety Disorder
+Recommendations come from whatever entries exist in `data/medicines.json` (which may include many conditions and products). The app groups symptoms into broad clusters and selects a best-matching item for each detected cluster.
 
 ## 🛠️ Technology Stack
 
-- **Frontend**: Streamlit
-- **NLP**: NLTK (Natural Language Toolkit)
-- **Machine Learning**: scikit-learn
-- **Data Processing**: pandas, numpy
-- **Model Persistence**: joblib
+- **Backend**: Flask
+- **Frontend**: Jinja templates + Bootstrap
+- **NLP**: NLTK (with a lightweight fallback tokenizer if NLTK data isn’t available)
+- **Production server**: Gunicorn (Linux/macOS)
 
 ## 📦 Dependencies
 
-Dependencies are managed in `requirements.txt`. Key packages used by the project include:
+Dependencies are managed in `requirements.txt`:
 
 ```
-streamlit>=1.28.0
-pandas>=1.5.0
-numpy>=1.23.0
-scikit-learn>=1.2.0
-nltk>=3.8
-joblib>=1.2.0
 flask>=2.0
+nltk>=3.8
+gunicorn>=21.2
 ```
 
 ## 🧯 Troubleshooting
@@ -172,6 +173,21 @@ python -m venv .venv
 python -m pip install -r requirements.txt
 python app_flask.py
 ```
+
+### NLTK Data Not Found
+
+If you see an error about missing NLTK data, you can download it manually:
+
+```powershell
+python -c "import nltk; nltk.download('punkt'); nltk.download('punkt_tab'); nltk.download('stopwords'); nltk.download('wordnet')"
+```
+
+If your environment cannot download NLTK data, set `DISABLE_NLTK_DOWNLOADS=1` and the app will fall back to a lightweight tokenizer.
+
+### Gunicorn on Windows
+
+`gunicorn` is primarily for Linux/macOS production servers. On Windows, run the app with:
+- `python app_flask.py`
 
 ## 🔮 Future Enhancements
 
